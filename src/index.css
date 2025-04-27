@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+
+
+body{
+    background-image: url("./assets/image//todoImg.png");
+    background-repeat: no-repeat;
+    background-position: top center;
+}
