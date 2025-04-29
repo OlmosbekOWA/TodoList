@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 interface Todo {
   id: number;
@@ -8,57 +8,101 @@ interface Todo {
 
 interface InitialState {
   todos: Todo[];
-  status: string;
+  status: "idle" | "pending" | "succeeded" | "failed" | "rejected";
 }
 
-
-const loadTodosFromLocalStorage = (): Todo[] => {
-  try {
-    const todos = localStorage.getItem('todos');
-    if (todos) {
-      return JSON.parse(todos);
-    }
-    return [];
-  } catch (error) {
-    console.error("Failed to load todos:", error);
-    return [];
-  }
-};
-
 const initialState: InitialState = {
-  todos: loadTodosFromLocalStorage(),
-  status: "todos",
+  todos: [],
+  status: "idle",
 };
+
+
+export const getTodo = createAsyncThunk("todos/getTodos", async () => {
+  const res = await fetch("https://291cbb7febebe978.mokky.dev/todo");
+  const data = await res.json();
+  return data;
+});
+
+
+export const addTodo = createAsyncThunk("todos/addTodos", async (title: string) => {
+  const res = await fetch("https://291cbb7febebe978.mokky.dev/todo", {
+    method: "POST",
+    body: JSON.stringify({
+      title,
+      isHidi: false,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  const data = await res.json();
+  return data;
+});
+
+
+export const removeTodo = createAsyncThunk("todos/removeTodo", async (id: number) => {
+  await fetch(`https://291cbb7febebe978.mokky.dev/todo/${id}`, {
+    method: "DELETE",
+  });
+  return id;
+});
+
+
+export const toggleTodoStatus = createAsyncThunk(
+  "todos/toggleTodoStatus",
+  async ({ id, currentStatus }: { id: number; currentStatus: boolean }) => {
+    const res = await fetch(`https://291cbb7febebe978.mokky.dev/todo/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ isHidi: !currentStatus }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await res.json();
+    return data;
+  }
+);
 
 export const todoSlice = createSlice({
-  name: "addTodo",
+  name: "todos",
   initialState,
   reducers: {
-    addTodo: (state, action: PayloadAction<string>) => {
-      state.todos.unshift({
-        id: Math.floor(Math.random() * 1000),
-        title: action.payload,
-        isHidi: false,
-      });
-      localStorage.setItem('todos', JSON.stringify(state.todos));
-    },
-    removeTodo: (state, action: PayloadAction<number | string>) => {
-      state.todos = state.todos.filter((todo) => todo.id !== action.payload);
-      localStorage.setItem('todos', JSON.stringify(state.todos));
-    },
     clearTodo: (state) => {
       state.todos = [];
-      localStorage.setItem('todos', JSON.stringify(state.todos));
     },
-    activeTodo: (state, action: PayloadAction<number>) => {
-      const todo = state.todos.find((todo) => todo.id === action.payload);
-      if (todo) {
-        todo.isHidi = !todo.isHidi;
-      }
-      localStorage.setItem('todos', JSON.stringify(state.todos));
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(getTodo.pending, (state) => {
+        state.status = "pending";
+      })
+      .addCase(getTodo.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.todos = action.payload;
+      })
+      .addCase(getTodo.rejected, (state) => {
+        state.status = "rejected";
+      })
+
+      .addCase(addTodo.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.todos.push(action.payload);
+      })
+
+      .addCase(removeTodo.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.todos = state.todos.filter((todo) => todo.id !== action.payload);
+      })
+
+      .addCase(toggleTodoStatus.fulfilled, (state, action) => {
+        const updated = action.payload;
+        const todo = state.todos.find((t) => t.id === updated.id);
+        if (todo) {
+          todo.isHidi = updated.isHidi;
+        }
+      });
   },
 });
 
-export const { addTodo, removeTodo, clearTodo, activeTodo } = todoSlice.actions;
+export const { clearTodo } = todoSlice.actions;
 export default todoSlice.reducer;

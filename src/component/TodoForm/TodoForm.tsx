@@ -4,20 +4,32 @@ import { Buttons } from "../Buttons/Buttons";
 import { TodoCard } from "../TodoCard/TodoCard";
 import { RootState } from "../../store/store";
 
+
+
+
+
+
 export function TodoForm() {
   const [state, setState] = useState<string>("");
-  const todos = useSelector((store: RootState) => store.todo.todos);
+  const todos = useSelector((store: RootState) => store.todos.todos);
+  console.log(todos);
+  
+ 
+  
+  
+
+
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setState(e.target.value);
   };
+  
+  
 
   return (
     <div className="mx-auto w-full flex flex-col ">
       <div className="w-full mb-10" >
         <input
-          
-          id="title"
           value={state}
           onChange={handleChange}
           type="text"
@@ -33,9 +45,13 @@ export function TodoForm() {
           boxShadow: "0px 35px 50px -15px #C2C3D680"
         }}>
         <div className="w-full flex flex-col gap-2">
-          {todos?.map((item) => (
-            <TodoCard key={item.id} todo={item} />
-          ))}
+        {
+          
+          
+        todos.map((todo) => (
+          <TodoCard key={todo.id} todo={todo} />
+        ))}
+
         </div>
 
         <div className="p-5 w-full flex items-center justify-center">
